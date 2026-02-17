@@ -22,31 +22,31 @@ class BooksSpider(scrapy.Spider):
         main = response.css("div.product_main")
         item = MyProjectItem()
 
-        # Title
-        item["title"] = main.css("h1::text").get()
+        # Title: використовуємо порожній рядок за замовчуванням
+        item["title"] = main.css("h1::text").get(default='')
 
-        # Price: захищена конвертація
+        # Price
         price_raw = main.css("p.price_color::text").get(default='0')
         try:
             item["price"] = float(re.sub(r'[^\d.]', '', price_raw))
         except (ValueError, TypeError):
             item["price"] = 0.0
 
-        # Rating: захист від None перед replace
+        # Rating: замість тексту 'None' використовуємо порожній рядок або None
         rating_class = main.css("p.star-rating::attr(class)").get()
-        item["rating"] = rating_class.replace("star-rating ", "") if rating_class else "None"
+        item["rating"] = rating_class.replace("star-rating ", "") if rating_class else ""
 
-        # Stock: регулярний вираз для пошуку числа
+        # Stock
         stock_raw = "".join(main.css("p.instock.availability::text").getall()).strip()
         stock_match = re.search(r'(\d+)', stock_raw)
         item["amount_in_stock"] = int(stock_match.group(1)) if stock_match else 0
 
-        # Category & Description
-        item["category"] = response.xpath("//ul[@class='breadcrumb']/li[3]/a/text()").get(default='Default')
+        # Category: замість 'Default' використовуємо порожній рядок
+        item["category"] = response.xpath("//ul[@class='breadcrumb']/li[3]/a/text()").get(default='')
+
         desc = response.xpath("//div[@id='product_description']/following-sibling::p/text()").get(default='')
         item["description"] = desc.strip()
 
-        # UPC: пошук через XPath по тексту заголовка
         item["upc"] = response.xpath("//th[text()='UPC']/following-sibling::td/text()").get(default='')
 
         yield item
